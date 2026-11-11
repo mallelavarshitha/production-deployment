@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -155,3 +156,20 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
         )
     crud.delete_task(db=db, db_task=task)
     return {"message": "Task deleted successfully", "id": task_id}
+
+# Serve static frontend build if present (for single-container/Kubernetes deployments)
+static_dir = Path(__file__).resolve().parent.parent / "static"
+if static_dir.exists():
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.responses import FileResponse
+
+    assets_dir = static_dir / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_frontend(full_path: str):
+        target = static_dir / full_path
+        if target.is_file():
+            return FileResponse(str(target))
+        return FileResponse(str(static_dir / "index.html"))

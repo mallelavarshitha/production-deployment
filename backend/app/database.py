@@ -3,10 +3,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 from .config import settings
 
-# Engine configuration with pool pre-ping to detect stale connections
+# Engine configuration
+is_sqlite = "sqlite" in settings.sqlalchemy_database_url
+connect_args = {"check_same_thread": False} if is_sqlite else {}
+
 engine = create_engine(
     settings.sqlalchemy_database_url,
-    pool_pre_ping=True,
+    connect_args=connect_args,
+    pool_pre_ping=not is_sqlite,
     echo=False,
 )
 
